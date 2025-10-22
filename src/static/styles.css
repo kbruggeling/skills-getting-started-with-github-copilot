@@ -146,7 +146,7 @@ footer {
 .participants-section {
   margin-top: 15px;
   padding-top: 15px;
-  border-top: 1px dashed #ddd;
+  padding-left: 0; /* hide default indentation */
 }
 
 .participants-list {
@@ -155,12 +155,37 @@ footer {
   padding-left: 20px;
 }
 
-.participants-list li {
-  margin: 5px 0;
-  color: #666;
-  position: relative;
+/* Remove bullet point and add space for actions */
+.participants-list li .participant-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
+.participant-email {
+  color: #666;
+  word-break: break-all;
+}
+
+/* Delete icon button */
+.participant-delete {
+  background: transparent;
+  border: none;
+  color: #c62828;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 6px;
+  border-radius: 4px;
+}
+
+.participant-delete:hover {
+  background-color: rgba(198, 40, 40, 0.08);
+}
+
+.participant-delete:focus {
+  outline: 2px solid rgba(198,40,40,0.2);
+}
 .participants-list li::before {
   content: "•";
   color: #1a237e;
