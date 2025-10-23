@@ -64,7 +64,8 @@ def test_unregister_flow():
     email = "tempstudent@mergington.edu"
     
     # Sign them up first
-    client.post(f"/activities/{activity}/signup", params={"email": email})
+    signup_response = client.post(f"/activities/{activity}/signup", params={"email": email})
+    assert signup_response.status_code == 200
     
     # Get initial count
     response = client.get("/activities")

@@ -4,6 +4,47 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // Reusable function to handle participant deletion
+  async function handleParticipantDelete(btn, activityName, email) {
+    // optimistic UI: disable button while request runs
+    btn.disabled = true;
+
+    try {
+      const resp = await fetch(`/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`, {
+        method: 'POST'
+      });
+
+      if (resp.ok) {
+        // remove participant row from DOM
+        const li = btn.closest('li');
+        if (li) {
+          li.remove();
+          // Update spots available after successful unregister
+          const activityCard = btn.closest('.activity-card');
+          if (activityCard) {
+            const availabilityP = activityCard.querySelector('.availability-info');
+            if (availabilityP) {
+              const match = availabilityP.textContent.match(/(\d+) spots left/);
+              if (match) {
+                const spots = parseInt(match[1], 10) + 1;
+                availabilityP.innerHTML = `<strong>Availability:</strong> ${spots} spots left`;
+              }
+            }
+          }
+        }
+      } else {
+        const err = await resp.json();
+        console.error('Failed to unregister:', err);
+        btn.disabled = false;
+        alert((err.detail ? `${err.detail} Please try again or contact support.` : 'Failed to unregister participant. Please try again.'));
+      }
+    } catch (error) {
+      console.error('Error unregistering participant:', error);
+      btn.disabled = false;
+      alert('Error unregistering participant');
+    }
+  }
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
@@ -40,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
-          <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <p class="availability-info"><strong>Availability:</strong> ${spotsLeft} spots left</p>
           <div class="participants-section">
             ${participantsList}
           </div>
@@ -53,44 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
             btn.addEventListener('click', async (e) => {
               const activityName = decodeURIComponent(btn.dataset.activity);
               const email = decodeURIComponent(btn.dataset.email);
-
-              // optimistic UI: disable button while request runs
-              btn.disabled = true;
-
-              try {
-                const resp = await fetch(`/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`, {
-                  method: 'POST'
-                });
-
-                if (resp.ok) {
-                  // remove participant row from DOM
-                  const li = btn.closest('li');
-                  if (li) {
-                    li.remove();
-                    // Update spots available after successful unregister
-                    const activityCard = btn.closest('.activity-card');
-                    if (activityCard) {
-                      const availabilityP = Array.from(activityCard.querySelectorAll('p')).find(p => p.textContent.includes('Availability'));
-                      if (availabilityP) {
-                        const match = availabilityP.textContent.match(/(\d+) spots left/);
-                        if (match) {
-                          const spots = parseInt(match[1], 10) + 1;
-                          availabilityP.innerHTML = `<strong>Availability:</strong> ${spots} spots left`;
-                        }
-                      }
-                    }
-                  }
-                } else {
-                  const err = await resp.json();
-                  console.error('Failed to unregister:', err);
-                  btn.disabled = false;
-                  alert(err.detail || 'Failed to unregister participant');
-                }
-              } catch (error) {
-                console.error('Error unregistering participant:', error);
-                btn.disabled = false;
-                alert('Error unregistering participant');
-              }
+              handleParticipantDelete(btn, activityName, email);
             });
           });
 
@@ -134,7 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const title = card.querySelector('h4')?.textContent;
           if (title === activity) {
             // Update spots left
-            const availabilityP = Array.from(card.querySelectorAll('p')).find(p => p.textContent.includes('Availability'));
+            const availabilityP = card.querySelector('.availability-info');
             if (availabilityP) {
               // parse current spots left then decrement
               const match = availabilityP.textContent.match(/(\d+) spots left/);
@@ -171,31 +175,8 @@ document.addEventListener("DOMContentLoaded", () => {
             // attach handler to the new delete button
             const newBtn = li.querySelector('.participant-delete');
             if (newBtn) {
-                newBtn.addEventListener('click', async () => {
-                newBtn.disabled = true;
-                try {
-                  const resp = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`, { method: 'POST' });
-                  if (resp.ok) {
-                    li.remove();
-                    // Update spots available after successful unregister
-                    const availabilityP = Array.from(card.querySelectorAll('p')).find(p => p.textContent.includes('Availability'));
-                    if (availabilityP) {
-                      const match = availabilityP.textContent.match(/(\d+) spots left/);
-                      if (match) {
-                        const spots = parseInt(match[1], 10) + 1;
-                        availabilityP.innerHTML = `<strong>Availability:</strong> ${spots} spots left`;
-                      }
-                    }
-                  } else {
-                    const err = await resp.json();
-                    alert(err.detail || 'Failed to unregister participant');
-                    newBtn.disabled = false;
-                  }
-                } catch (error) {
-                  console.error('Error unregistering participant:', error);
-                  alert('Error unregistering participant');
-                  newBtn.disabled = false;
-                }
+              newBtn.addEventListener('click', async () => {
+                handleParticipantDelete(newBtn, activity, email);
               });
             }
             
