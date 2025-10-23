@@ -4,6 +4,48 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // Reusable function to handle participant deletion
+  async function handleParticipantDelete(btn, activityName, email) {
+    // optimistic UI: disable button while request runs
+    btn.disabled = true;
+
+    try {
+      const resp = await fetch(`/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`, {
+        method: 'POST'
+      });
+
+      if (resp.ok) {
+        // remove participant row from DOM
+        const li = btn.closest('li');
+        if (li) {
+          li.remove();
+          // Update spots available after successful unregister
+          const activityCard = btn.closest('.activity-card');
+          if (activityCard) {
+            const availabilityP = activityCard.querySelector('.availability-info');
+            if (availabilityP) {
+              const match = availabilityP.textContent.match(/(\d+) spots left/);
+              if (match) {
+                const spots = parseInt(match[1], 10) + 1;
+                availabilityP.innerHTML = `<strong>Availability:</strong> ${spots} spots left`;
+              }
+            }
+          }
+        }
+      } else {
+        const err = await resp.json();
+        console.error('Failed to unregister:', err);
+        btn.disabled = false;
+        const errorMsg = err.detail ? `${err.detail} Please try again or contact support.` : 'Failed to unregister participant. Please try again.';
+        alert(errorMsg);
+      }
+    } catch (error) {
+      console.error('Error unregistering participant:', error);
+      btn.disabled = false;
+      alert('Error unregistering participant');
+    }
+  }
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
@@ -20,14 +62,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        // Create participants list HTML
+        const participantsList = details.participants.length > 0
+          ? `
+            <p><strong>Current Participants:</strong></p>
+            <ul class="participants-list">
+              ${details.participants.map(email => `
+                <li>
+                  <div class="participant-row">
+                    <span class="participant-email">${email}</span>
+                    <button class="participant-delete" data-activity="${encodeURIComponent(name)}" data-email="${encodeURIComponent(email)}" title="Unregister" aria-label="Unregister ${email}">\u232b</button>
+                  </div>
+                </li>
+              `).join('')}
+            </ul>`
+          : `<p><em>No participants yet - be the first to join!</em></p>`;
+
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
-          <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <p class="availability-info"><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants-section">
+            ${participantsList}
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
+
+          // attach delete handlers for participant buttons
+          activityCard.querySelectorAll('.participant-delete').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+              const activityName = decodeURIComponent(btn.dataset.activity);
+              const email = decodeURIComponent(btn.dataset.email);
+              handleParticipantDelete(btn, activityName, email);
+            });
+          });
 
         // Add option to select dropdown
         const option = document.createElement("option");
@@ -62,6 +132,57 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        // Update UI so the newly signed-up participant appears without refresh
+        // Find the activity card for this activity and update spots and participants
+        const cards = document.querySelectorAll('.activity-card');
+        cards.forEach(card => {
+          const title = card.querySelector('h4')?.textContent;
+          if (title === activity) {
+            // Update spots left
+            const availabilityP = card.querySelector('.availability-info');
+            if (availabilityP) {
+              // parse current spots left then decrement
+              const match = availabilityP.textContent.match(/(\d+) spots left/);
+              if (match) {
+                const spots = Math.max(0, parseInt(match[1], 10) - 1);
+                availabilityP.innerHTML = `<strong>Availability:</strong> ${spots} spots left`;
+              }
+            }
+
+            // Ensure participants list exists
+            let participantsSection = card.querySelector('.participants-section');
+            if (!participantsSection) {
+              participantsSection = document.createElement('div');
+              participantsSection.className = 'participants-section';
+              card.appendChild(participantsSection);
+            }
+
+            let ul = participantsSection.querySelector('.participants-list');
+            if (!ul) {
+              participantsSection.innerHTML = `<p><strong>Current Participants:</strong></p><ul class="participants-list"></ul>`;
+              ul = participantsSection.querySelector('.participants-list');
+            }
+
+            // append new participant li with delete button
+            const li = document.createElement('li');
+            li.innerHTML = `
+              <div class="participant-row">
+                <span class="participant-email">${email}</span>
+                <button class="participant-delete" data-activity="${encodeURIComponent(activity)}" data-email="${encodeURIComponent(email)}" title="Unregister" aria-label="Unregister ${email}">\u232b</button>
+              </div>
+            `;
+            ul.appendChild(li);
+
+            // attach handler to the new delete button
+            const newBtn = li.querySelector('.participant-delete');
+            if (newBtn) {
+              newBtn.addEventListener('click', async () => {
+                handleParticipantDelete(newBtn, activity, email);
+              });
+            }
+            
+          }
+        });
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";

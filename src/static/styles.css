@@ -36,8 +36,12 @@ main {
 }
 
 @media (min-width: 768px) {
+  /* Use a two-column grid layout on wider viewports */
   main {
+    display: grid;
     grid-template-columns: 2fr 1fr;
+    gap: 30px;
+    align-items: start;
   }
 }
 
@@ -142,3 +146,54 @@ footer {
   padding: 20px;
   color: #666;
 }
+
+.participants-section {
+  margin-top: 15px;
+  padding-top: 15px;
+  padding-left: 0; /* remove default padding */
+}
+
+.participants-list {
+  list-style-type: none;
+  margin: 10px 0;
+  padding-left: 0; /* remove left padding so items align with card content */
+}
+
+/* Remove bullet point and add space for actions */
+.participants-list li .participant-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.participants-list li {
+  margin: 5px 0;
+  color: #666;
+  position: relative;
+}
+
+.participant-email {
+  color: #666;
+  word-break: break-all;
+}
+
+/* Delete icon button */
+.participant-delete {
+  background: transparent;
+  border: none;
+  color: #c62828;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 6px;
+  border-radius: 4px;
+}
+
+.participant-delete:hover {
+  background-color: rgba(198, 40, 40, 0.08);
+}
+
+.participant-delete:focus {
+  outline: 2px solid rgba(198,40,40,0.2);
+}
+/* Removed custom bullet marker (::before) to avoid visual regressions introduced earlier */
