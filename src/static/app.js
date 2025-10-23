@@ -36,7 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const err = await resp.json();
         console.error('Failed to unregister:', err);
         btn.disabled = false;
-        alert((err.detail ? `${err.detail} Please try again or contact support.` : 'Failed to unregister participant. Please try again.'));
+        const errorMsg = err.detail ? `${err.detail} Please try again or contact support.` : 'Failed to unregister participant. Please try again.';
+        alert(errorMsg);
       }
     } catch (error) {
       console.error('Error unregistering participant:', error);
@@ -70,7 +71,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <li>
                   <div class="participant-row">
                     <span class="participant-email">${email}</span>
-                    <button class="participant-delete" data-activity="${encodeURIComponent(name)}" data-email="${encodeURIComponent(email)}" title="Unregister">\u232b</button>
+                    <button class="participant-delete" data-activity="${encodeURIComponent(name)}" data-email="${encodeURIComponent(email)}" title="Unregister" aria-label="Unregister ${email}">\u232b</button>
                   </div>
                 </li>
               `).join('')}
@@ -167,7 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
             li.innerHTML = `
               <div class="participant-row">
                 <span class="participant-email">${email}</span>
-                <button class="participant-delete" data-activity="${encodeURIComponent(activity)}" data-email="${encodeURIComponent(email)}" title="Unregister">\u232b</button>
+                <button class="participant-delete" data-activity="${encodeURIComponent(activity)}" data-email="${encodeURIComponent(email)}" title="Unregister" aria-label="Unregister ${email}">\u232b</button>
               </div>
             `;
             ul.appendChild(li);
